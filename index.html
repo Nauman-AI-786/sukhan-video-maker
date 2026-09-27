@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sukhan Video Maker | Free AI Video from Images</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@400;500;600;700&display=swap');
+:root{--bg:#0b1020;--panel:#121a30;--panel2:#1a2440;--line:rgba(232,196,140,.16);--tx:#f4eee2;--mu:#a3a9bf;--gold:#e8c48c;--gold-grad:linear-gradient(135deg,#fff6df,#f7e2b8 20%,#e0a86a 55%,#c98a4e 80%,#8a5a2e)}
+*{box-sizing:border-box;margin:0}
+body{font-family:Manrope,system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100%;padding:18px calc(18px + env(safe-area-inset-right,0)) calc(24px + env(safe-area-inset-bottom,0)) calc(18px + env(safe-area-inset-left,0));padding-top:calc(18px + env(safe-area-inset-top,0));background-image:radial-gradient(800px 400px at 90% -10%,rgba(232,196,140,.10),transparent 60%);max-width:640px;margin-inline:auto}
+h1{font-family:'Cormorant Garamond',serif;font-size:1.7rem;font-weight:700;margin-bottom:2px;background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;display:inline-block}
+.sub{color:var(--mu);font-size:.85rem;margin-bottom:20px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:16px}
+.card h2{font-family:'Cormorant Garamond',serif;font-size:1.15rem;margin-bottom:12px;color:var(--tx)}
+.slide{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start}
+.slide img{width:64px;height:64px;object-fit:cover;border-radius:10px;flex:none;border:1px solid var(--line)}
+.slide textarea{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:10px;font-size:.9rem;min-height:64px;font-family:inherit}
+.slide button{background:none;border:1px solid var(--line);color:var(--mu);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.75rem;flex:none}
+.slide button:hover{border-color:#e06060;color:#e06060}
+label.up{display:block;border:1.5px dashed var(--gold);color:var(--gold);text-align:center;border-radius:12px;padding:16px;cursor:pointer;font-size:.88rem;font-weight:700}
+label.up:active{background:rgba(232,196,140,.08)}
+input[type=file]{display:none}
+button.main{width:100%;background:var(--gold-grad);color:#0b1020;border:0;border-radius:99px;padding:15px;font-weight:800;font-size:.95rem;cursor:pointer;margin-top:4px;letter-spacing:.01em}
+button.main:disabled{opacity:.5}
+button.sec{width:100%;background:var(--panel2);border:1px solid var(--gold);color:var(--gold);border-radius:99px;padding:13px;font-weight:700;cursor:pointer;margin-top:10px}
+canvas{width:100%;aspect-ratio:16/9;border-radius:14px;background:#000;margin-top:12px;display:block;border:1px solid var(--line)}
+.status{font-size:.82rem;color:var(--mu);margin-top:12px;line-height:1.5}
+.pb{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:8px}
+.pb i{display:block;height:100%;width:0;background:var(--gold-grad);transition:width .2s}
+.empty{color:var(--mu);font-size:.85rem;text-align:center;padding:14px 0}
+</style>
+</head>
+<body>
+<h1>🎬 Sukhan Video Maker</h1>
+<p class="sub">Images + AI awaz se free video banayein — sab kuch browser mein hota hai, koi upload/server nahi.</p>
+
+<div class="card">
+  <h2>Slides</h2>
+  <div id="slides"><p class="empty" id="emptyMsg">Abhi koi slide nahi. Neeche se image add karein.</p></div>
+  <label class="up" for="imgIn">＋ Image add karein aur caption likhein</label>
+  <input type="file" id="imgIn" accept="image/*" multiple>
+</div>
+
+<div class="card">
+  <h2>Video</h2>
+  <button class="main" id="genBtn">Video banayein</button>
+  <button class="sec" id="dlBtn" style="display:none">⬇ Video download karein</button>
+  <div class="status" id="st">Pehle upar images add karein, phir "Video banayein" dabayein.</div>
+  <div class="pb"><i id="pg"></i></div>
+  <canvas id="cv" width="1280" height="720" style="display:none"></canvas>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let slides=[]; // {url, text}
+const st=m=>$('st').textContent=m;
+
+$('imgIn').onchange=e=>{
+  [...e.target.files].forEach(f=>{
+    const r=new FileReader();
+    r.onload=()=>{slides.push({url:r.result,text:''});render()};
+    r.readAsDataURL(f);
+  });
+  e.target.value='';
+};
+function render(){
+  if(!slides.length){$('slides').innerHTML='<p class="empty">Abhi koi slide nahi. Neeche se image add karein.</p>';return}
+  $('slides').innerHTML=slides.map((s,i)=>`
+    <div class="slide">
+      <img src="${s.url}">
+      <textarea dir="auto" data-i="${i}" placeholder="Is slide ke liye text/caption likhein (Urdu/Hindi/English)...">${s.text}</textarea>
+      <button data-rm="${i}">✕</button>
+    </div>`).join('');
+  $('slides').querySelectorAll('textarea').forEach(t=>t.oninput=e=>slides[+e.target.dataset.i].text=e.target.value);
+  $('slides').querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{slides.splice(+b.dataset.rm,1);render()});
+}
+
+let engine=null;
+async function loadEngine(){
+  if(engine)return engine;
+  st('Voice model load ho raha hai (~85MB, sirf pehli dafa)...');
+  const {KokoroTTS}=await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm');
+  engine=await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX',{dtype:'q8',device:'wasm'});
+  return engine;
+}
+function wrapText(ctx,text,maxW){
+  const words=text.split(/\s+/),lines=[];let cur='';
+  for(const w of words){const t=cur?cur+' '+w:w;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w}else cur=t}
+  if(cur)lines.push(cur);
+  return lines;
+}
+function draw(ctx,img,text){
+  ctx.fillStyle='#000';ctx.fillRect(0,0,1280,720);
+  if(img){
+    const r=Math.min(1280/img.width,620/img.height);
+    const w=img.width*r,h=img.height*r;
+    ctx.drawImage(img,(1280-w)/2,20,w,h);
+  }
+  if(text&&text.trim()){
+    ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(0,600,1280,120);
+  }
+  ctx.direction=/[\u0600-\u06FF\u0900-\u097F]/.test(text||'')?'rtl':'ltr';
+  ctx.fillStyle='#fff';ctx.font='600 34px system-ui,sans-serif';ctx.textAlign='center';
+  const lines=wrapText(ctx,text||'',1140);
+  lines.slice(-3).forEach((l,i,arr)=>{ctx.fillText(l,640,660-(arr.length-1-i)*42)});
+}
+
+$('genBtn').onclick=async()=>{
+  if(!slides.length){st('Pehle kam az kam ek image add karein.');return}
+  $('genBtn').disabled=true;
+  const cv=$('cv'),ctx=cv.getContext('2d');cv.style.display='block';
+  const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  const dest=audioCtx.createMediaStreamDestination();
+  const canvasStream=cv.captureStream(30);
+  const mixed=new MediaStream([...canvasStream.getVideoTracks(),...dest.stream.getAudioTracks()]);
+  const rec=new MediaRecorder(mixed,{mimeType:'video/webm;codecs=vp9,opus'});
+  const chunks=[];rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+  const done=new Promise(res=>rec.onstop=res);
+  rec.start();
+
+  try{ await loadEngine(); }catch(e){ st('Voice model load nahi ho saka, bina awaz ke video banega.') }
+
+  for(let i=0;i<slides.length;i++){
+    st(`Slide ${i+1}/${slides.length} tayyar ho rahi hai...`);
+    $('pg').style.width=(i/slides.length*100)+'%';
+    const img=await new Promise(r=>{const im=new Image();im.onload=()=>r(im);im.src=slides[i].url});
+    let durMs=2500;
+    if(engine && slides[i].text.trim()){
+      try{
+        const out=await engine.generate(slides[i].text.slice(0,400),{voice:'af_heart'});
+        const buf=audioCtx.createBuffer(1,out.audio.length,out.sampling_rate||24000);
+        buf.copyToChannel(out.audio,0);
+        const src=audioCtx.createBufferSource();src.buffer=buf;src.connect(dest);src.connect(audioCtx.destination);
+        durMs=Math.max(2000,(buf.duration*1000)+300);
+        draw(ctx,img,slides[i].text);
+        src.start();
+        await new Promise(r=>setTimeout(r,durMs));
+      }catch(e){
+        draw(ctx,img,slides[i].text);
+        await new Promise(r=>setTimeout(r,durMs));
+      }
+    } else {
+      draw(ctx,img,slides[i].text);
+      await new Promise(r=>setTimeout(r,durMs));
+    }
+  }
+  $('pg').style.width='100%';
+  rec.stop();
+  await done;
+  const blob=new Blob(chunks,{type:'video/webm'});
+  const url=URL.createObjectURL(blob);
+  $('dlBtn').style.display='block';
+  $('dlBtn').onclick=()=>{const a=document.createElement('a');a.href=url;a.download='sukhan-video.webm';a.click()};
+  st('Video tayyar hai! Download button dabayein.');
+  $('genBtn').disabled=false;
+};
+render();
+</script>
+</body>
+</html>
